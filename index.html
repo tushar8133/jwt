@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>JWT</title>
+	<script type="text/javascript">
+
+		var URL = "http://localhost:4211";
+
+		function fetchStatus(response) {
+			if (response.status >= 200 && response.status < 300) {
+				return Promise.resolve(response);
+			} else {
+				return Promise.reject(new Error(response.statusText));
+			}
+		}
+
+		function fetchJson(response) {
+			return response.json();
+		}
+
+		function login(uname, pword) {
+			var data = {username: uname, password: pword};
+
+			fetch(URL+"/authenticate", {
+				method: 'POST',
+				headers: { "Content-type": "application/json; charset=UTF-8" },
+				body: JSON.stringify(data)
+			})
+			.then(fetchStatus)
+  			.then(fetchJson)
+			.then( data => {
+				if(data.error) {
+					localStorage.clear();
+					setMessage(data.error);
+				} else {
+					localStorage.setItem("accessToken", data.accessToken);
+					setMessage("Login Successful");
+				}
+			})
+			.catch( err => {
+				localStorage.clear();
+				setMessage(err);
+			})
+		}
+
+		function checkBankBalance() {
+			var myHeaders = new Headers({
+				'Content-Type': 'application/json',
+				'X-Custom-Header': 'hello world',
+				'Authorization': localStorage.getItem("accessToken")
+			});
+
+			fetch(URL+"/checkbankbalance", {
+				method: 'POST',
+				headers: myHeaders
+			})
+			.then(fetchStatus)
+  			.then(fetchJson)
+			.then( data => {
+				if(data.error != null) {
+					setMessage(data.error)
+				} else {
+					setMessage(`Welcome ${data.username.toUpperCase()} <br /> Your account has $${data.amount}`);
+				}
+			})
+			.catch( err => {
+				console.error(err);
+			})
+		}
+
+		function logout() {
+			localStorage.clear();
+			setMessage("Logged Out!")
+		}
+
+		function setMessage(msg) {
+			document.querySelector("#messageBox").innerHTML = msg;
+		}
+		
+	</script>
+</head>
+<body>
+<h2>Bank of America</h2>
+<fieldset style="width: 200px;">
+	<legend>Login</legend>
+	<form onsubmit="event.preventDefault(); login(this.username.value, this.password.value)">
+		<p>Username<br/><input type="text" name="username" placeholder="username" value="Superman"></p>
+		<p>Password<br/><input type="password" name="password" placeholder="password" value="flyme"></p>
+		<p><input type="submit" name="submit" value="Login">	<button onclick="event.preventDefault(); logout()">Logout</button></p>
+	</form>
+</fieldset>
+
+<p><button onclick="checkBankBalance()">Check Bank Balance</button></p>
+
+<p style="border: 1px solid gray; display: grid; align-items: center; text-align: center; width: 180px; height: 50px; background-color: lightyellow;">
+	<span id="messageBox"></span>
+</p>
+
+</body>
+</html>
